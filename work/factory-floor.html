@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory Floor · Brittany Rietz</title>
+<meta name="description" content="Concept: a risk-first inbox that helps developers see, trust, and steer parallel coding agents. Research from a real Warp Factories run, plus a keyboard-first prototype.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  .finding { display: grid; grid-template-columns: 48px 1fr; gap: 16px; padding: 20px 0; border-top: 1px solid var(--line); }
+  .finding .n { font-family: var(--serif); font-size: 32px; color: var(--accent); line-height: 1; }
+  .finding p { color: var(--ink-2); margin: 0; }
+  .finding .src { font: 12px var(--mono); color: var(--ink-3); margin-top: 6px; display: block; }
+
+  /* Demo: styled after the current Warp Factories web app (light), so the proposal reads as an evolution of it */
+  .inbox {
+    --w-bg: #fff; --w-side: #f7f7f7; --w-hover: #f5f5f5; --w-sel: #efefef; --w-line: #e7e7e7; --w-line2: #dadada;
+    --w-ink: #1d1d1d; --w-ink2: #5c5c5c; --w-ink3: #8d8d8d; --w-chip: #f3f3f3;
+    --w-bad: #c4362c; --w-bad-bg: #fdeeec; --w-warn: #9a5b00; --w-warn-bg: #fdf4e3; --w-ok: #1b7446; --w-ok-bg: #e9f6ef;
+    --w-fac: #a78bfa; --w-blue: #3b82f6;
+    position: relative; display: grid; grid-template-columns: 200px minmax(0, 1fr);
+    width: min(1200px, calc(100vw - 48px)); left: 50%; transform: translateX(-50%);
+    background: var(--w-bg); color: var(--w-ink); border: 1px solid var(--w-line); border-radius: 12px; overflow: hidden;
+    font: 13px/1.45 "Inter", var(--sans); outline: none; color-scheme: light;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 16px 40px rgba(0,0,0,.07);
+  }
+  .inbox:focus, .inbox:focus-within { box-shadow: 0 0 0 2px rgba(59,130,246,.45), 0 16px 40px rgba(0,0,0,.07); }
+  .inbox svg { width: 15px; height: 15px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Sidebar */
+  .ib-side { background: var(--w-side); border-right: 1px solid var(--w-line); display: flex; flex-direction: column; padding: 12px 10px; gap: 2px; font-size: 13px; color: var(--w-ink2); }
+  .ib-side .brand { display: flex; justify-content: space-between; align-items: center; padding: 2px 6px 12px; color: var(--w-ink3); }
+  .ib-side .mark { width: 16px; height: 16px; border-radius: 4px; background: var(--w-ink); }
+  .sn { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 6px; }
+  .sn.on { background: #e8e8e8; color: var(--w-ink); font-weight: 500; }
+  .sn .ct { margin-left: auto; font-size: 11px; color: var(--w-ink3); font-weight: 500; }
+  .sn.sub { padding-left: 20px; }
+  .ib-side .grp { display: flex; justify-content: space-between; padding: 16px 8px 6px; font-size: 12px; color: var(--w-ink3); }
+  .fac { display: flex; align-items: center; gap: 8px; padding: 5px 8px; color: var(--w-ink); font-weight: 500; }
+  .badge { width: 14px; height: 14px; border-radius: 3px; background: var(--w-fac); color: #fff; font: 600 9px/14px "Inter", sans-serif; text-align: center; flex: none; }
+  .ib-side .bottom { margin-top: auto; border-top: 1px solid var(--w-line); padding: 12px 6px 0; display: grid; gap: 10px; font-size: 12.5px; }
+  .ib-side .bal { display: flex; align-items: center; gap: 8px; }
+  .ib-side .bal i { width: 7px; height: 7px; border-radius: 50%; background: var(--w-blue); }
+  .ib-side .me { display: flex; align-items: center; gap: 9px; color: var(--w-ink); font-weight: 600; }
+  .ib-side .me span { width: 26px; height: 26px; border-radius: 50%; background: #d9d4cc; display: grid; place-items: center; font-size: 11px; color: #555; }
+  .ib-side .me small { display: block; font-weight: 400; color: var(--w-ink3); font-size: 11.5px; }
+
+  /* Main */
+  .ib-main { display: flex; flex-direction: column; min-width: 0; }
+  .ib-top { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px 0 16px; border-bottom: 1px solid var(--w-line); }
+  .ib-top .title { font-weight: 600; font-size: 13px; }
+  .ib-top .spacer { flex: 1; }
+  .ib-focus { font-size: 11.5px; color: var(--w-ink3); }
+  .ib-focus.on { color: var(--w-ok); }
+  .seg { display: inline-flex; border: 1px solid var(--w-line2); border-radius: 7px; padding: 2px; gap: 2px; background: #fafafa; }
+  .seg button { font: 500 12px "Inter", sans-serif; color: var(--w-ink2); background: none; border: 0; border-radius: 5px; padding: 4px 10px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: #fff; color: var(--w-ink); box-shadow: 0 0 0 1px var(--w-line2), 0 1px 2px rgba(0,0,0,.06); }
+  .ibtn { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--w-line2); border-radius: 6px; color: var(--w-ink2); background: #fff; }
+  .wbtn { font: 500 12.5px "Inter", sans-serif; color: var(--w-ink); background: #fff; border: 1px solid var(--w-line2); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+
+  .ib-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: 600px; }
+  .ib-list { overflow-y: auto; min-height: 0; padding: 4px 0 12px; }
+  .ib-sec { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 4px; font-size: 12px; font-weight: 500; color: var(--w-ink3); }
+  .ib-sec.needs { color: var(--w-bad); }
+  .ib-sec.needs span::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--w-bad); margin-right: 7px; vertical-align: 1px; }
+  .ib-sec button { font: 500 11.5px "Inter", sans-serif; color: var(--w-ink); background: #fff; border: 1px solid var(--w-line2); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+  .ib-sec button kbd { font: 10.5px var(--mono); color: var(--w-ink3); margin-left: 4px; }
+
+  .row { display: grid; grid-template-columns: 14px minmax(0, 1fr) max-content; column-gap: 12px; width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: 9px 16px; cursor: pointer; font: inherit; }
+  .row:hover { background: var(--w-hover); }
+  .row[aria-selected="true"] { background: var(--w-sel); }
+  .legend { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px 8px 16px; background: #fff; border-bottom: 1px solid var(--w-line); font-size: 12px; color: var(--w-ink2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend b { color: var(--w-ink); font-weight: 600; }
+  .legend .sw { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  .legend .sw.needs { background: #f8dbd5; box-shadow: inset 0 0 0 1px #e8a79c; }
+  .legend .sw.review { background: #f9ecbb; box-shadow: inset 0 0 0 1px #e2c56c; }
+  .legend .sw.routine { background: #fff; box-shadow: inset 0 0 0 1px #cfcfcf; }
+  .legend button { margin-left: auto; font: 500 11.5px "Inter", sans-serif; color: var(--w-ink); background: #fff; border: 1px solid var(--w-line2); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+  .legend button kbd { font: 10.5px var(--mono); color: var(--w-ink3); margin-left: 4px; }
+  .ib-list:has(.legend) { padding-top: 0; }
+  /* Proposed view only: tint rows by severity so risk reads before you read a word */
+  .row.sev-needs { background: #fdf2f0; }
+  .row.sev-needs:hover { background: #fbe7e3; }
+  .row.sev-needs[aria-selected="true"] { background: #f8dbd5; box-shadow: inset 3px 0 0 var(--w-bad); }
+  .row.sev-review { background: #fefaea; }
+  .row.sev-review:hover { background: #fcf3d3; }
+  .row.sev-review[aria-selected="true"] { background: #f9ecbb; box-shadow: inset 3px 0 0 #e2a83c; }
+  .row.sev-needs + .row.sev-needs, .row.sev-review + .row.sev-review { border-top: 1px solid rgba(255,255,255,.7); }
+  .row .cb { width: 13px; height: 13px; border: 1px solid #c9c9c9; border-radius: 3px; background: #fff; margin-top: 3px; }
+  .row .t { color: #333; font-size: 13px; }
+  .row .kind { font-size: 11px; color: var(--w-warn); margin-left: 6px; font-weight: 500; }
+  .row .ago { font-size: 11.5px; color: var(--w-ink3); padding-top: 1px; }
+  .row .side { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+  .type-ic { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #fff; border: 1px solid var(--w-line2); color: var(--w-ink2); box-shadow: 0 1px 1px rgba(0,0,0,.04); }
+  .type-ic svg { width: 13px; height: 13px; stroke-width: 1.8; }
+  .type-ic.t-blocked svg { width: 15px; height: 15px; }
+  .type-ic.t-question svg { width: 16px; height: 16px; stroke-width: 2; }
+  .row .desc { font-size: 12px; color: var(--w-ink2); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+  .tg { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; padding: 1px 6px; border-radius: 4px; background: var(--w-chip); color: var(--w-ink2); }
+  .tg svg { width: 11px; height: 11px; }
+  .tg.bad { background: var(--w-bad-bg); color: var(--w-bad); }
+  .tg.warn { background: var(--w-warn-bg); color: var(--w-warn); }
+  .tg.ok { background: var(--w-ok-bg); color: var(--w-ok); }
+  .tg.mono { font-family: var(--mono); font-size: 11px; }
+  .row .chk { font-size: 12px; color: var(--w-ink2); margin-top: 5px; }
+  .row .chk b { color: var(--w-ink); font-weight: 600; }
+  .row.moved { animation: flash 1.6s ease; }
+  .row .movednote { font-size: 11.5px; color: var(--w-bad); margin-top: 4px; font-weight: 500; }
+  @keyframes flash { 0% { background: #fbd9d5; } 100% { background: transparent; } }
+
+  .ib-pane { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; min-height: 0; border-left: 1px solid var(--w-line); }
+  .ib-pane .layer { font-size: 11px; font-weight: 500; color: var(--w-ink3); text-transform: uppercase; letter-spacing: .04em; }
+  .ib-pane h4 { margin: 0; font: 600 17px/1.3 "Inter", sans-serif; color: var(--w-ink); letter-spacing: -.01em; }
+  .intent { color: var(--w-ink2); margin: 0; }
+  .focus { border: 1px solid #f0dcb2; background: var(--w-warn-bg); padding: 10px 12px; border-radius: 8px; font-size: 12.5px; color: var(--w-ink); }
+  .focus b { color: var(--w-warn); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 2px; }
+  .checks { display: flex; flex-wrap: wrap; gap: 6px; }
+  .checks span { font-size: 12px; padding: 3px 8px; border-radius: 5px; background: var(--w-chip); }
+  .checks .ok { color: var(--w-ok); background: var(--w-ok-bg); } .checks .bad { color: var(--w-bad); background: var(--w-bad-bg); } .checks .none { color: var(--w-ink3); }
+  .diffsum { font: 12px var(--mono); color: var(--w-ink2); }
+  .diffsum .head { color: var(--w-ink); margin-bottom: 6px; font-family: "Inter", sans-serif; font-weight: 500; }
+  .diffsum .f { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-bottom: 1px solid #f2f2f2; }
+  .diffsum .f.sens { color: var(--w-bad); }
+  .diffsum .raw { color: var(--w-ink3); margin-top: 6px; font-family: "Inter", sans-serif; }
+  .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .acts button, .modal button, .qopts button { font: 500 12.5px "Inter", sans-serif; color: var(--w-ink); background: #fff; border: 1px solid var(--w-line2); border-radius: 6px; padding: 6px 11px; cursor: pointer; }
+  .acts button:hover, .modal button:hover, .qopts button:hover { background: var(--w-hover); }
+  .acts button.primary, .modal button.primary { background: var(--w-ink); color: #fff; border-color: var(--w-ink); }
+  .acts kbd, .modal kbd, .ib-keys kbd { font: 10.5px var(--mono); color: var(--w-ink3); margin-left: 6px; }
+  .acts button.primary kbd, .modal button.primary kbd { color: #aaa; }
+  .reqbox { display: flex; flex-direction: column; gap: 8px; }
+  .reqbox textarea { font: 13px "Inter", sans-serif; color: var(--w-ink); background: #fff; border: 1px solid var(--w-line2); border-radius: 8px; padding: 10px; min-height: 70px; resize: vertical; }
+  .ib-pane.split { padding: 0; gap: 0; overflow: hidden; }
+  .pane-top { padding: 14px 18px 12px; display: flex; flex-direction: column; gap: 8px; flex: none; }
+  .pane-top h4 { font-size: 15px; }
+  .pane-top .intent { font-size: 12.5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pane-top .focus { padding: 6px 10px; font-size: 12px; display: flex; gap: 8px; align-items: baseline; }
+  .pane-top .focus b { display: inline; margin: 0; flex: none; font-size: 10.5px; }
+  .pane-top .checks span { font-size: 11.5px; padding: 1px 7px; }
+  .pane-top .diffsum { font-size: 11.5px; }
+  .pane-top .diffsum .head { margin-bottom: 2px; font-size: 12px; }
+  .pane-top .diffsum .f { padding: 1px 0; border-bottom: 0; }
+  .pane-top .diffsum .raw { margin-top: 2px; font-size: 11.5px; }
+  .pane-top .acts { gap: 6px; margin-top: 2px; }
+  .pane-top .acts button { padding: 4px 10px; font-size: 12px; }
+  .drill { flex: 1; min-height: 0; overflow-y: auto; border-top: 1px solid var(--w-line); background: #fbfbfb; padding: 0 18px 14px; display: flex; flex-direction: column; gap: 10px; outline: none; scrollbar-width: thin; min-height: 220px; }
+  .drill > * { flex: none; }
+  .drill pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 8px 10px; }
+  .drill:focus-visible { box-shadow: inset 0 0 0 2px rgba(59,130,246,.45); }
+  .drill-head { position: sticky; top: 0; z-index: 1; background: #fbfbfb; padding: 9px 0 5px; margin: 0 -2px; display: flex; justify-content: space-between; gap: 8px; }
+  .drill-head span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .drill-head kbd { font: 10.5px var(--mono); color: var(--w-ink3); }
+  .drill pre { margin: 0; font: 12px/1.55 var(--mono); background: #fafafa; border: 1px solid var(--w-line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; color: var(--w-ink2); }
+  .drill pre .a { color: var(--w-ok); } .drill pre .r { color: var(--w-bad); }
+  .proof { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--w-ink2); }
+  .proof .thumb { width: 72px; height: 44px; border-radius: 6px; background: linear-gradient(135deg, #ececec, #dcdcdc); display: grid; place-items: center; color: var(--w-ink3); font-size: 14px; }
+  .tl { font: 12px var(--mono); color: var(--w-ink2); display: grid; grid-template-columns: max-content 1fr max-content; gap: 3px 12px; }
+  .tl .ok { color: var(--w-ok); } .tl .bad { color: var(--w-bad); }
+  .qopts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 12.5px; }
+  .kv dt { color: var(--w-ink3); } .kv dd { margin: 0; color: var(--w-ink); }
+  .empty { margin: auto; text-align: center; color: var(--w-ink2); padding: 40px 0; }
+  .empty b { display: block; font: 600 18px "Inter", sans-serif; color: var(--w-ink); margin-bottom: 6px; }
+  .hint { margin: auto; color: var(--w-ink3); text-align: center; font-size: 13px; }
+  .today-note { background: #fafafa; border: 1px solid var(--w-line); border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: var(--w-ink2); }
+  .today-note b { color: var(--w-ink); }
+  .today-note ul { margin: 6px 0 0; padding-left: 18px; }
+
+  .ib-foot { display: flex; justify-content: space-between; gap: 12px; padding: 9px 16px; border-top: 1px solid var(--w-line); flex-wrap: wrap; align-items: center; }
+  .ib-keys { font-size: 11.5px; color: var(--w-ink3); display: flex; flex-wrap: wrap; gap: 12px; }
+  .ib-keys kbd { margin: 0 3px 0 0; color: var(--w-ink2); }
+  .ib-foot .ctl { display: flex; gap: 8px; }
+  .ib-foot .ctl button { font: 12px "Inter", sans-serif; color: var(--w-ink2); background: #fff; border: 1px solid var(--w-line2); border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+  .ib-foot .ctl button:hover { color: var(--w-ink); }
+  .inbox.today .ib-keys { display: none; } .inbox.today #simBtn { visibility: hidden; }
+  .gauge { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--w-ink2); white-space: nowrap; }
+  /* Bar: the fill shows the full red→amber→green gradient up to the % cleared (the gradient is sized to the
+     whole track, so each color sits at a fixed spot), and a circle marks where you are. */
+  .gauge .bar { position: relative; width: 150px; height: 6px; border-radius: 99px; background: #ececec; flex: none; margin: 0 6px 0 4px; }
+  .gauge .fill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 99px;
+    background: linear-gradient(90deg, #d64532 0, #e8903a 38px, #e9c443 80px, #8cc06a 118px, #2f9a5c 150px); background-size: 150px 100%;
+    transition: width .45s cubic-bezier(.2,.8,.2,1); }
+  .gauge .knob { position: absolute; top: 50%; left: 0; width: 13px; height: 13px; border-radius: 50%; background: #fff;
+    border: 3px solid var(--knob, #bdbdbd); box-shadow: 0 1px 3px rgba(0,0,0,.22); transform: translate(-50%, -50%);
+    transition: left .45s cubic-bezier(.2,.8,.2,1), border-color .45s; }
+  #gaugeText { min-width: 262px; }
+  @media (max-width: 900px) { #gaugeText { min-width: 0; } }
+  .gauge b { color: var(--w-ink); font-weight: 600; }
+  .gauge .st { font-weight: 500; padding: 1px 6px; border-radius: 4px; }
+  .gauge.s-needs .st { color: var(--w-bad); background: var(--w-bad-bg); }
+  .gauge.s-review .st { color: var(--w-warn); background: var(--w-warn-bg); }
+  .gauge.s-routine .st { color: var(--w-ok); background: var(--w-ok-bg); }
+  .gauge.full { color: var(--w-ok); font-weight: 500; }
+  .inbox.today .gauge { display: none; }
+  .done-banner { margin: 14px 16px; padding: 16px 18px; border-radius: 10px; background: var(--w-ok-bg); border: 1px solid #bfe3cf; display: grid; grid-template-columns: 32px 1fr; gap: 4px 12px; align-items: start; animation: rise .45s cubic-bezier(.2,.8,.2,1); }
+  .done-banner .ic { grid-row: span 3; width: 32px; height: 32px; border-radius: 50%; background: var(--w-ok); color: #fff; display: grid; place-items: center; }
+  .done-banner .ic svg { width: 17px; height: 17px; stroke-width: 2.4; }
+  .done-banner h5 { margin: 0; font: 600 14px "Inter", sans-serif; color: var(--w-ok); }
+  .done-banner p { margin: 0; font-size: 12.5px; color: var(--w-ink2); }
+  .done-banner .stats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .done-banner .stats span { font-size: 11.5px; padding: 1px 7px; border-radius: 4px; background: #fff; border: 1px solid #cfe9db; color: var(--w-ink2); }
+  .done-banner .stats b { color: var(--w-ink); font-weight: 600; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .done-banner { animation: none; } .gauge .fill, .gauge .knob { transition: none; } }
+  .inbox.today .ib-body { grid-template-columns: minmax(0, 1fr); }
+  .inbox.today.today-open .ib-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+  .inbox.today:not(.today-open) .ib-pane { display: none; }
+  .inbox.today .row .rs { display: none; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 500; color: var(--w-ink); background: #fff; border: 1px solid var(--w-line2); border-radius: 6px; padding: 2px 8px; margin-top: -3px; }
+  .inbox.today .row .rs svg { width: 12px; height: 12px; }
+  .inbox.today .row:hover .t-ago, .inbox.today .row[aria-selected="true"] .t-ago { display: none; }
+  .inbox.today .row:hover .rs, .inbox.today .row[aria-selected="true"] .rs { display: inline-flex; }
+  .inbox.today .ib-pane { padding: 0; gap: 0; overflow: hidden; }
+  .tx-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px 10px 16px; border-bottom: 1px solid var(--w-line); flex: none; }
+  .tx-title { font-weight: 600; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tx-tools { display: flex; gap: 6px; align-items: center; flex: none; }
+  .tx-tools .wbtn { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 4px 8px; cursor: default; }
+  .tx-tools .wbtn svg { width: 12px; height: 12px; }
+  .tx-tools .ibtn { width: 26px; height: 26px; cursor: pointer; font: 16px/1 "Inter", sans-serif; padding: 0; }
+  .tx-tools .ibtn.x { border: 0; }
+  .tx-body { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 18px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; scrollbar-width: thin; }
+  .tx-step { color: var(--w-ink3); font-size: 11.5px; margin-top: 6px; }
+  .tx-msg { margin: 0; color: var(--w-ink); line-height: 1.5; }
+  .tx-link { color: #7c5cd6; }
+  .tx-done { color: var(--w-ink2); font-size: 11.5px; padding-bottom: 8px; border-bottom: 1px solid var(--w-line); }
+  .tx-sub { color: var(--w-ink2); font-size: 12px; }
+  .tx-sub b { color: var(--w-ink); font-weight: 600; margin: 0 4px; }
+  .qcard { margin-top: 10px; border: 1px solid var(--w-line2); border-radius: 8px; overflow: hidden; flex: none; }
+  .qhead { display: flex; justify-content: space-between; padding: 8px 12px; background: #f6f6f6; border-bottom: 1px solid var(--w-line); font-size: 11.5px; color: var(--w-ink2); }
+  .qq { margin: 10px 12px 6px; font-weight: 600; font-size: 12.5px; }
+  .qopt { display: flex; align-items: center; gap: 8px; width: calc(100% - 12px); margin: 0 6px; padding: 6px 8px; border: 0; border-radius: 6px; background: none; font: 12.5px "Inter", sans-serif; color: var(--w-ink); text-align: left; cursor: pointer; }
+  .qopt:hover { background: var(--w-hover); } .qopt.on { background: #efeaff; }
+  .qn { width: 16px; height: 16px; border: 1px solid var(--w-line2); border-radius: 4px; font-size: 10px; display: grid; place-items: center; color: var(--w-ink2); flex: none; }
+  .rec { margin-left: auto; font-size: 11px; color: var(--w-ink3); }
+  .qfoot { display: flex; justify-content: flex-end; gap: 10px; padding: 8px 12px; margin-top: 6px; border-top: 1px solid var(--w-line); }
+  .qfoot .skip { background: none; border: 0; font: 500 12px "Inter", sans-serif; text-decoration: underline; cursor: pointer; color: var(--w-ink); }
+  .qfoot .submit { font: 500 12px "Inter", sans-serif; border-radius: 6px; padding: 5px 10px; border: 0; background: var(--w-ink); color: #fff; cursor: pointer; }
+  .qfoot .submit:disabled { background: #e6e6e6; color: var(--w-ink3); cursor: default; }
+  .today-empty { padding: 60px 0; }
+  .inbox.today .today-notice { display: block; }
+  .today-notice { display: none; font-size: 11.5px; color: var(--w-ink3); flex: 1; min-width: 0; }
+  .inbox.today .ib-foot { flex-wrap: nowrap; }
+  .inbox.today:not(.today-open) .row[aria-selected="true"]:not(:hover) { background: none; }
+  .inbox.today:not(.today-open) .row[aria-selected="true"]:not(:hover) .t-ago { display: inline; }
+  .inbox.today:not(.today-open) .row[aria-selected="true"]:not(:hover) .rs { display: none; }
+  .ib-list { scrollbar-width: thin; scrollbar-color: #d6d6d6 transparent; }
+  .ib-pane .peek { color: var(--w-ink3); font-size: 12px; margin: 0; }
+
+  .toast { position: absolute; left: calc(50% + 100px); bottom: 54px; transform: translate(-50%, 10px); background: var(--w-ink); color: #fff; padding: 8px 14px; border-radius: 8px; font: 500 12.5px "Inter", sans-serif; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; display: flex; gap: 12px; align-items: center; white-space: nowrap; z-index: 5; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .toast button { background: none; border: 0; font: 600 12.5px "Inter", sans-serif; color: #9ec1ff; cursor: pointer; padding: 0; }
+  .scrim { position: absolute; inset: 0; background: rgba(20,20,20,.28); display: none; align-items: center; justify-content: center; z-index: 6; padding: 16px; }
+  .scrim.show { display: flex; }
+  .modal { background: #fff; border: 1px solid var(--w-line); border-radius: 12px; padding: 20px; width: min(420px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,.18); }
+  .modal h5 { margin: 0 0 12px; font: 600 15px "Inter", sans-serif; color: var(--w-ink); }
+  .modal ul { list-style: none; margin: 0 0 16px; padding: 0; font-size: 12.5px; color: var(--w-ink2); display: grid; gap: 4px; }
+  .modal li { display: flex; justify-content: space-between; gap: 10px; }
+  .modal .note2 { font-size: 12px; color: var(--w-ink3); margin: -6px 0 14px; }
+  .modal .btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .help dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; font-size: 13px; margin: 0 0 14px; }
+  .help dt { font: 12px var(--mono); color: var(--w-ink); }
+  .help dd { margin: 0; color: var(--w-ink2); }
+
+  @media (max-width: 900px) {
+    .inbox { grid-template-columns: 1fr; width: auto; left: 0; transform: none; }
+    .ib-side { display: none; }
+    .toast { left: 50%; }
+  }
+  @media (max-width: 760px) {
+    .ib-body, .inbox.today .ib-body { grid-template-columns: 1fr; height: auto; }
+    .ib-pane { max-height: 520px; }
+    .ib-pane { border-left: 0; border-top: 1px solid var(--w-line); }
+    .ib-list { max-height: 380px; }
+    .ib-keys, .ib-focus { display: none; }
+  }
+</style>
+<style>
+  /* Page theme: follows warp.dev's current site. Near-white ground, violet-black ink,
+     monospace display type, a highlighter yellow used sparingly, [ bracketed ] captions. */
+  :root {
+    --bg: #fcfdfd; --surface: #ffffff; --surface-2: #f1f0f3; --ink: #1a1522; --ink-2: #5d5864; --ink-3: #8e8a95;
+    --line: #e5e3e9; --accent: #1a1522; --accent-ink: #ffffff; --hi: #eef17c; --hi-ink: #1a1522; --grid: #f0eef3;
+    --serif: "Azeret Mono", ui-monospace, Menlo, monospace;
+    --mono: "Azeret Mono", ui-monospace, Menlo, monospace;
+    --radius: 6px; color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111014; --surface: #18171c; --surface-2: #222027; --ink: #eceaf0; --ink-2: #aaa6b1; --ink-3: #75717d;
+      --line: #2a2830; --accent: #eceaf0; --accent-ink: #111014; --hi: #eef17c; --hi-ink: #1a1522; --grid: #17161b; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111014; --surface: #18171c; --surface-2: #222027; --ink: #eceaf0; --ink-2: #aaa6b1; --ink-3: #75717d;
+    --line: #2a2830; --accent: #eceaf0; --accent-ink: #111014; --hi: #eef17c; --hi-ink: #1a1522; --grid: #17161b; color-scheme: dark;
+  }
+  body {
+    background: var(--bg) linear-gradient(90deg, transparent calc(50% - 521px), var(--grid) calc(50% - 521px), var(--grid) calc(50% - 520px), transparent calc(50% - 520px), transparent calc(50% + 520px), var(--grid) calc(50% + 520px), var(--grid) calc(50% + 521px), transparent calc(50% + 521px));
+  }
+  h1, h2, .nav .name { font-family: var(--serif); font-weight: 400; letter-spacing: -.02em; }
+  h1 { font-size: clamp(34px, 5.2vw, 58px); line-height: 1.12; }
+  h2 { font-size: clamp(24px, 3.2vw, 34px); line-height: 1.2; }
+  .case-hero h1 { font-size: clamp(34px, 5.2vw, 58px); }
+  h1 em, h2 em { font-style: normal; background: var(--hi); color: var(--hi-ink); padding: 0 .12em; }
+  .nav .name { font-size: 15px; }
+  .nav a { font-family: var(--mono); font-size: 13px; }
+  .eyebrow { font-size: 11px; letter-spacing: 0; text-transform: lowercase; color: var(--ink-3); }
+  .eyebrow::before { content: "[ "; } .eyebrow::after { content: " ]"; }
+  .tag { font-family: var(--mono); background: var(--hi); color: var(--hi-ink); border-radius: 4px; letter-spacing: 0; text-transform: none; font-size: 12px; }
+  .finding .n, .decision .n { font-family: var(--mono); font-size: 13px; color: var(--ink-3); padding-top: 4px; }
+  .finding .n::before, .decision .n::before { content: "0"; }
+  .finding h3, .decision h3 { font-weight: 600; letter-spacing: -.01em; }
+  section { border-color: var(--line); }
+  a { text-decoration-color: var(--hi); text-decoration-thickness: 3px; text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div class="wrap">
+  <nav class="nav">
+    <a class="name" href="../">Brittany Rietz</a>
+    <ul>
+      <li><a href="../#work">Work</a></li>
+      <li><a href="../#about">About</a></li>
+      <li><a href="../resume.pdf">Resume</a></li>
+    </ul>
+  </nav>
+</div>
+
+<main class="case" id="main-content" tabindex="-1">
+  <div class="wrap">
+    <header class="case-hero narrow">
+      <span class="tag">Warp Factories review inbox · Self-initiated concept + prototype</span>
+      <h1 style="margin-top:18px">Trusting the <em>factory floor</em></h1>
+      <p class="lede">Coding agents are moving from one-at-a-time helpers to pipelines that triage, build, review, and verify in parallel. As that happens, the human bottleneck moves to understanding and trusting the work. This concept is a risk-first inbox: it shows a developer what actually needs them, and lets them decide in place only when the evidence is on screen.</p>
+    </header>
+    <div class="meta-grid">
+      <div><span class="eyebrow">Role</span>Research, design, prototype</div>
+      <div><span class="eyebrow">User</span>An engineer with many agent tasks running</div>
+      <div><span class="eyebrow">Grounded in</span>A real Warp Factories setup on this site's repo</div>
+      <div><span class="eyebrow">Built with</span>HTML/CSS/JS, keyboard-first</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap cols">
+      <div>
+        <span class="eyebrow">The question</span>
+        <h2 style="margin-top:12px">With five agents running, what deserves my attention?</h2>
+      </div>
+      <div>
+        <p>I ran a pipeline like this myself at Lennar (<a href="agent-pipeline.html">see the case study</a>). The hard part was never starting agents. It was knowing what each one was doing, which results were safe to accept, and which moment actually needed me.</p>
+        <p>Hypothesis: review should be <b>risk-first, not diff-first</b>. Show intent and evidence up front, batch the safe work, and send the risky work to the top.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow">
+      <span class="eyebrow">What I found</span>
+      <h2 style="margin:12px 0 8px">I set up a real factory on this portfolio and gave it a real task.</h2>
+      <p class="note" style="margin-bottom:12px">I connected Warp Factories to this site's repository and asked it to add a keyboard skip link. It opened a pull request, I asked for a revision, and I merged it. Then I compared what I saw against six agent tools.</p>
+
+      <div class="finding"><span class="n">1</span><div>
+        <h3>The agent knew where I should look. The inbox hid it.</h3>
+        <p>The agent's summary ended with exactly what a human should check: "the homepage target is the hero header, since that page has no &lt;main&gt;." In the inbox, that sentence sat at the end of a summary cut off at two lines. The most useful signal was the least visible.</p>
+        <span class="src">Friction log #8 · my factory run, Nov 2026</span>
+      </div></div>
+
+      <div class="finding"><span class="n">2</span><div>
+        <h3>Raw diff size lies about risk.</h3>
+        <p>My revision showed as +138 / −112 on GitHub. Ignoring whitespace, it was five lines: the agent had re-indented the page. A tiny, safe change looked like the riskiest thing in the queue.</p>
+        <span class="src">Friction log #10 · PR #1</span>
+      </div></div>
+
+      <div class="finding"><span class="n">3</span><div>
+        <h3>No tool ranks parallel work by what needs a human.</h3>
+        <p>Across Warp, Claude Code, Codex, Cursor, Copilot, and Devin, progress is a timeline and approval is either per action or per pull request. The evidence that makes a change trustworthy (tests, browser checks) is in the logs, not on the review screen.</p>
+        <span class="src">Competitor scan · six tools, primary docs</span>
+      </div></div>
+
+      <div class="finding"><span class="n">4</span><div>
+        <h3>Deciding means leaving.</h3>
+        <p>The inbox's only action on my pull request was "Mark as resolved." To approve, I had to go to GitHub. Every decision cost a context switch.</p>
+        <span class="src">Friction log #9</span>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">Prototype · styled after the current Factories web app · fictional factory and tasks</span>
+      <h2 style="margin:12px 0 8px">Clear the inbox.</h2>
+      <p class="note" style="margin-bottom:20px">The interactive, keyboard-first prototype lives on its own password-protected page. Flip <b>Today / Proposed</b> there to compare it with how the inbox works now. The password is in my application.</p>
+      <a class="btn" href="inbox-prototype.html">Open the prototype (password) →</a>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow">
+      <span class="eyebrow">Key decisions</span>
+      <h2 style="margin:12px 0 24px">What I chose, and why</h2>
+
+      <div class="decision"><span class="n">1</span><div>
+        <h3>Three sections, not a score</h3>
+        <p>"Needs you," "Review when ready," and "Routine." A score hides its reasons and invites false confidence. Sections give a clear stopping point, and reason tags on every row make each placement easy to argue with.</p>
+      </div></div>
+
+      <div class="decision"><span class="n">2</span><div>
+        <h3>Risk comes from evidence, not size</h3>
+        <p>Sensitive paths (payments, auth, CI) or failed or missing checks put an item in "Needs you." Missing evidence counts as risk. Change size only ranks items within a section, and it's measured ignoring whitespace, so a re-indent never looks dangerous.</p>
+      </div></div>
+
+      <div class="decision"><span class="n">3</span><div>
+        <h3>The agent's review focus is on every row</h3>
+        <p>One line: "Check: …". It tells you <i>where</i> to look, not <i>whether</i> to worry, so it never raises an item's risk on its own.</p>
+      </div></div>
+
+      <div class="decision"><span class="n">4</span><div>
+        <h3>You can act only where you can see enough to decide</h3>
+        <p>Routine rows carry enough evidence to approve right from the list. Anything riskier has to be opened first, and approve lives next to the evidence. Where a button appears is itself a trust signal. A button on a row you haven't understood trains people to rubber-stamp.</p>
+      </div></div>
+
+      <div class="decision"><span class="n">5</span><div>
+        <h3>Progressive disclosure, three layers</h3>
+        <p>The row helps you decide whether to open it. The pane shows intent, review focus, checks, and the meaningful diff, which is enough to approve. Below that, in its own scrolling area, sit the full diff, video proof, timeline, and cost, always there for when you want more.</p>
+      </div></div>
+
+      <div class="decision"><span class="n">6</span><div>
+        <h3>Fast, but never blind</h3>
+        <p>Keyboard-first throughout, because that's how this audience works. Batch approval shows exactly what's included and gives you an undo window. If an item's evidence changes after you've seen it, it moves up with a one-line reason instead of quietly re-sorting.</p>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap cols">
+      <div>
+        <span class="eyebrow">What I'd measure</span>
+        <h2 style="margin-top:12px">Faster decisions, without more mistakes.</h2>
+      </div>
+      <div>
+        <ul>
+          <li><b>Time to decision</b> per item, from arriving in the inbox to approve or request changes.</li>
+          <li><b>Share of routine work batch-approved</b>, so attention goes where it's needed.</li>
+          <li><b>Reversal rate</b>: approved changes later reverted. This is the guardrail against false confidence.</li>
+          <li><b>Context switches per decision</b>: how often you had to leave for the run or GitHub.</li>
+        </ul>
+        <p class="note">Next: Figma screens and a small design system, interviews with developers who run agents, and a recorded walkthrough. Last updated November 2026.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap next">
+      <a class="btn ghost" href="agent-pipeline.html">← Agent pipeline</a>
+      <a class="btn ghost" href="../">All work</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><a href="mailto:brittanyrietz@gmail.com">brittanyrietz@gmail.com</a></span>
+    <span>Prototype uses a fictional factory and tasks</span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Pipeline · Brittany Rietz</title>
+<meta name="description" content="Case study: an end-to-end Claude Code delivery pipeline with human-approval checkpoints, and what it taught me about designing agent tools.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  .pipe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; counter-reset: s; }
+  .stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; position: relative; }
+  .stage::before { counter-increment: s; content: "0" counter(s); font: 11px var(--mono); color: var(--ink-3); display: block; margin-bottom: 8px; }
+  .stage b { display: block; font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  .stage span { font-size: 13px; color: var(--ink-2); }
+  .stage.gate { border: 1.5px solid var(--accent); }
+  .stage.gate::before { content: "◆ checkpoint"; color: var(--accent); }
+  .rail { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .rail div { border: 1px dashed var(--line); border-radius: 12px; padding: 14px 16px; font-size: 14px; color: var(--ink-2); }
+  .rail b { color: var(--ink); font-weight: 600; }
+  .lessons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .lesson { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+  .lesson .q { font-family: var(--serif); font-size: 26px; line-height: 1.15; margin-bottom: 12px; }
+  .lesson p { color: var(--ink-2); font-size: 15px; margin: 0; }
+  @media (max-width: 820px) { .pipe { grid-template-columns: 1fr 1fr; } .lessons, .rail { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div class="wrap">
+  <nav class="nav">
+    <a class="name" href="../">Brittany Rietz</a>
+    <ul>
+      <li><a href="../#work">Work</a></li>
+      <li><a href="../#about">About</a></li>
+      <li><a href="../resume.pdf">Resume</a></li>
+    </ul>
+  </nav>
+</div>
+
+<main class="case" id="main-content" tabindex="-1">
+  <div class="wrap">
+    <header class="case-hero narrow">
+      <span class="eyebrow">Lennar · Agentic workflow · Claude Code</span>
+      <h1>My own small <em>software factory</em></h1>
+      <p class="lede">I set up a Claude Code workflow that took my tickets from investigation all the way to a pull request, with human checkpoints so nothing reached production without someone saying yes. I used it every day, and teammates adopted it. It also became my best research into where agent tools confuse people.</p>
+    </header>
+    <div class="meta-grid">
+      <div><span class="eyebrow">Role</span>Designed, built, and used daily</div>
+      <div><span class="eyebrow">Stack</span>Claude Code · Salesforce · GitHub · Obsidian</div>
+      <div><span class="eyebrow">Adoption</span>A couple of teammates adopted it</div>
+      <div><span class="eyebrow">Result</span>About 2x faster delivery</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap cols">
+      <div>
+        <span class="eyebrow">Before</span>
+        <h2 style="margin-top:12px">Every ticket started from zero.</h2>
+      </div>
+      <div>
+        <p>Tickets were queuing up faster than they shipped. Bugs surfaced late, in code review or QA, where they cost the most to fix. And the architecture and business rules lived in people's heads, so each ticket began with re-investigating how things worked.</p>
+        <p>Each stage of the pipeline answers one of those: a knowledge base so runs start with context, tests and a browser check so mistakes show up before review, and a human approval so speed never costs safety.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">How it worked</span>
+      <h2 style="margin:12px 0 28px">Ticket in, reviewed pull request out</h2>
+      <div class="pipe">
+        <div class="stage"><b>Investigate</b><span>Read the ticket, trace the code and business rules involved</span></div>
+        <div class="stage"><b>Plan</b><span>Propose the change before touching anything</span></div>
+        <div class="stage"><b>Sandbox deploy</b><span>Deploy to a sandbox, never straight to production</span></div>
+        <div class="stage"><b>Test</b><span>Apex and Jest tests</span></div>
+        <div class="stage"><b>Browser validation</b><span>Check the real UI in a browser</span></div>
+        <div class="stage"><b>QA notes</b><span>Document what changed and how it was verified</span></div>
+        <div class="stage"><b>Pull request</b><span>Open a GitHub PR with the evidence attached</span></div>
+        <div class="stage gate"><b>Human approval</b><span>A person reviews and approves before anything merges</span></div>
+      </div>
+      <div class="rail">
+        <div><b>Guardrails.</b> Production CLI deployments were blocked outright. Other sensitive actions required explicit authorization.</div>
+        <div><b>Memory.</b> A Git-backed Obsidian knowledge base of our architecture and business rules, which the agent kept up to date, so every run started with context.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">What living inside it taught me</span>
+      <h2 style="margin:12px 0 28px">Agents are magical until you have to <em>trust</em> one.</h2>
+      <div class="lessons">
+        <div class="lesson">
+          <div class="q">What is it doing right now?</div>
+          <p>Long runs turned into a black box. I wanted progress I could read at a glance, not a scrolling log.</p>
+        </div>
+        <div class="lesson">
+          <div class="q">When should I step in?</div>
+          <p>Some moments needed me, and most didn't. The tool couldn't tell the difference, so I had to watch everything or risk missing the one that mattered.</p>
+        </div>
+        <div class="lesson">
+          <div class="q">Can I trust what it made?</div>
+          <p>The tests, browser checks, and QA notes existed so I could trust the result without re-reading every line. Evidence beat explanation.</p>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:28px">In practice, the tests and the browser check caught problems before they ever reached a pull request. Building evidence into the loop meant the agent's mistakes showed up while they were still cheap to fix, not after someone had already approved them.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap cols">
+      <div>
+        <span class="eyebrow">Why it matters for design</span>
+        <h2 style="margin-top:12px">These are interface problems.</h2>
+      </div>
+      <div>
+        <p>None of those three questions is solved by a smarter model alone. They're about visibility, attention, and evidence: what the tool shows you, when it interrupts you, and how it proves its work. That's the design space I want to work in, and it's where my concept work picks up.</p>
+        <a class="btn" href="factory-floor.html">Next: Warp Factories review inbox →</a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap next">
+      <a class="btn ghost" href="action-queue.html">← Action queue</a>
+      <a class="btn ghost" href="../">All work</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><a href="mailto:brittanyrietz@gmail.com">brittanyrietz@gmail.com</a></span>
+    <span>Pasadena, California</span>
+  </div>
+</footer>
+</body>
+</html>

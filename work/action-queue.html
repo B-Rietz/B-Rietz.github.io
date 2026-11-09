@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Action Queue · Brittany Rietz</title>
+<meta name="description" content="Case study: a prioritized action queue for New Home Consultants at Lennar, with 1–2 tap completion and auto-advance.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  .demo { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .banner { position: absolute; top: 18px; left: 50%; transform: translate(-50%, -8px); background: var(--good); color: #fff; padding: 8px 16px; border-radius: 999px; font: 600 13px var(--sans); opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 2; white-space: nowrap; }
+  .banner.show { opacity: 1; transform: translate(-50%, 0); }
+  .demo-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .gauges { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .gauge { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); }
+  .ring { --p: 0; --c: var(--bad); width: 38px; height: 38px; border-radius: 50%; background: conic-gradient(var(--c) calc(var(--p) * 1%), var(--surface-2) 0); display: grid; place-items: center; transition: background .4s; }
+  .ring::after { content: attr(data-label); width: 28px; height: 28px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; font: 600 10px var(--mono); color: var(--ink); }
+  .points { width: 160px; }
+  .bar { position: relative; height: 8px; background: var(--surface-2); border-radius: 4px; margin-top: 4px; }
+  .bar i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; transition: width .4s; }
+  .bar b { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--ink-3); }
+  .demo-body { display: grid; grid-template-columns: 1fr 1.15fr; min-height: 380px; }
+  .queue { border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  .tabs { display: flex; border-bottom: 1px solid var(--line); }
+  .tabs button { flex: 1; padding: 12px; background: none; border: 0; border-bottom: 2px solid transparent; font: 500 14px var(--sans); color: var(--ink-3); cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .items { list-style: none; margin: 0; padding: 8px; display: grid; gap: 4px; align-content: start; }
+  .item { display: grid; grid-template-columns: 8px 1fr auto; gap: 12px; align-items: center; padding: 12px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; }
+  .item:hover { background: var(--surface-2); }
+  .item[aria-selected="true"] { background: var(--surface-2); border-color: var(--line); }
+  .item .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .item.low .dot { background: var(--ink-3); }
+  .item .t { font-size: 14px; font-weight: 500; }
+  .item .s { font-size: 12px; color: var(--ink-3); }
+  .item .k { font: 11px var(--mono); color: var(--ink-3); }
+  .item.done { opacity: .4; text-decoration: line-through; pointer-events: none; }
+  .panel { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+  .panel h4 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1.1; }
+  .panel .ctx { font-size: 14px; color: var(--ink-2); margin: 0; }
+  .panel dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 13px; margin: 0; }
+  .panel dt { color: var(--ink-3); }
+  .panel dd { margin: 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+  .actions button, .actions input { font: 500 14px var(--sans); border-radius: 10px; padding: 11px 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .actions button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .actions button:hover { border-color: var(--ink-3); }
+  .actions input { cursor: text; flex: 1; min-width: 160px; }
+  .empty { margin: auto; text-align: center; color: var(--ink-2); }
+  .empty b { display: block; font-family: var(--serif); font-weight: 400; font-size: 30px; color: var(--ink); }
+  .demo-foot { display: flex; justify-content: space-between; gap: 12px; padding: 10px 18px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); flex-wrap: wrap; }
+  .demo-foot button { background: none; border: 0; color: var(--ink-2); font: 12px var(--sans); cursor: pointer; text-decoration: underline; }
+  @media (max-width: 720px) {
+    .demo-body { grid-template-columns: 1fr; }
+    .queue { border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div class="wrap">
+  <nav class="nav">
+    <a class="name" href="../">Brittany Rietz</a>
+    <ul>
+      <li><a href="../#work">Work</a></li>
+      <li><a href="../#about">About</a></li>
+      <li><a href="../resume.pdf">Resume</a></li>
+    </ul>
+  </nav>
+</div>
+
+<main class="case" id="main-content" tabindex="-1">
+  <div class="wrap">
+    <header class="case-hero narrow">
+      <span class="eyebrow">Lennar · Workflow design, built in code</span>
+      <h1>One queue, one or two taps, <em>next.</em></h1>
+      <p class="lede">New Home Consultants guide buyers through the biggest purchase of their lives. Their to-dos were scattered across records and screens. I designed and built a single prioritized queue where any item gets done in one or two taps, and the next one is already waiting.</p>
+    </header>
+    <div class="meta-grid">
+      <div><span class="eyebrow">Role</span>Design + front-end build</div>
+      <div><span class="eyebrow">Users</span>New Home Consultants</div>
+      <div><span class="eyebrow">Built with</span>Lightning Web Components</div>
+      <div><span class="eyebrow">Status</span>Working prototype; team now building it</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">Try it · recreated with fictional data</span>
+      <h2 style="margin:12px 0 24px">Clear the queue.</h2>
+      <div class="demo" id="demo">
+        <div class="banner" id="banner" role="status" aria-live="polite"></div>
+        <div class="demo-top">
+          <span class="eyebrow">My queue · Tuesday</span>
+          <div class="gauges">
+            <div class="gauge"><div class="ring" id="ring" data-label="0%"></div>Today's priority work</div>
+            <div class="gauge points">
+              <div style="width:100%">
+                <div style="display:flex;justify-content:space-between"><span>Weekly points</span><b id="pts" style="color:var(--ink)">40</b></div>
+                <div class="bar"><i id="ptsbar" style="width:27%"></i><b style="left:50%"></b><b style="left:100%"></b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-body">
+          <div class="queue">
+            <div class="tabs" role="tablist">
+              <button role="tab" aria-selected="true" data-tab="priority">Priority <span id="cP"></span></button>
+              <button role="tab" aria-selected="false" data-tab="later">Later <span id="cL"></span></button>
+            </div>
+            <ul class="items" id="items" role="listbox" aria-label="Queue"></ul>
+          </div>
+          <div class="panel" id="panel" aria-live="polite"></div>
+        </div>
+        <div class="demo-foot">
+          <span>The real one ran in Salesforce. This recreation uses made-up buyers and no Lennar data.</span>
+          <button id="reset" type="button">Reset demo</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap cols">
+      <div>
+        <span class="eyebrow">The problem</span>
+        <h2 style="margin-top:12px">The work was there. Finding it was the job.</h2>
+      </div>
+      <div>
+        <p>A consultant's day is follow-ups, callbacks, and filling in what's missing on a lead or an opportunity. Those pieces lived in different places, so knowing what to do next meant clicking through records and screens to piece it together.</p>
+        <p>It showed up everywhere. Consultants clicked through record after record to work out what was due. Follow-ups slipped. To-do lists lived outside the CRM. Key details like move-in timeline or financing stayed blank because filling them in took too many steps.</p>
+        <p>For Lennar, that added up to three costs: selling time spent searching instead of selling, work that happened where managers couldn't see it, and a pipeline missing the details needed to forecast and coach.</p>
+        <div class="facts" style="grid-template-columns:1fr">
+          <div class="fact"><b>500+</b><span>consultants and sales managers in the sales org I designed for</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap narrow">
+      <span class="eyebrow">Key decisions</span>
+      <h2 style="margin:12px 0 24px">What I chose, and why</h2>
+
+      <div class="decision"><span class="n">1</span><div>
+        <h3>One prioritized list, not another dashboard</h3>
+        <p>I pulled tasks and missing lead and opportunity information into a single queue that's already sorted. The consultant doesn't have to decide where to look, only whether to do the top thing.</p>
+      </div></div>
+
+      <div class="decision"><span class="n">2</span><div>
+        <h3>Single-select queue + contextual detail panel</h3>
+        <p>The list stays put on the left and the selected item's context opens on the right. You never lose your place, and you never leave the page to finish something.</p>
+      </div></div>
+
+      <div class="decision"><span class="n">3</span><div>
+        <h3>Finish in one or two taps, then auto-advance</h3>
+        <p>Every item type has its fastest possible completion: one tap to mark done, one tap to pick an answer, or type-and-save for a missing field. Finishing an item moves you straight to the next one, so momentum carries.</p>
+      </div></div>
+
+      <div class="decision"><span class="n">4</span><div>
+        <h3>Lower-priority work gets its own tab</h3>
+        <p>Rather than building elaborate filters, I moved low-priority items to a "Later" tab. The main queue stays short enough to feel finishable.</p>
+      </div></div>
+
+      <div class="decision"><span class="n">5</span><div>
+        <h3>Progress you can feel</h3>
+        <p>A big goal for the project was gamification: building momentum into the day. I used gauges because they read at a glance, with a red-to-green completion gauge for today and a persistent weekly points gauge. I added banners that celebrate new points the moment you earn them, along with divisional leaderboards and incentive milestones.</p>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap cols">
+      <div>
+        <span class="eyebrow">Process</span>
+        <h2 style="margin-top:12px">Prototype in code, so the feedback is real</h2>
+      </div>
+      <div>
+        <p>I built it as a working Lightning Web Components prototype instead of a mockup. People could click through real flows, so feedback was about the workflow rather than the picture of it.</p>
+        <p>Most feedback centered on two things: which fields to show for each kind of item, and how records should be prioritized behind the scenes. Both shaped what the queue shows and the order it shows it in. That's exactly the kind of feedback a static mockup can't get you.</p>
+        <div class="callout">Outcome: every feature worked end to end. Demo feedback from consultants and managers was positive, leadership greenlit it, and the team is now building it for production. Once it launches, I'd measure the share of tasks finished inside Salesforce, how many leads have move-in timeline and financing filled in, and time to first follow-up.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap next">
+      <a class="btn ghost" href="../">← All work</a>
+      <a class="btn" href="agent-pipeline.html">Next: My own small software factory →</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><a href="mailto:brittanyrietz@gmail.com">brittanyrietz@gmail.com</a></span>
+    <span>Recreated interface · fictional data</span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const seed = () => [
+    { id: 1, tab: "priority", title: "Call back Maya Chen", sub: "Asked about lot premiums", kind: "done", label: "Called · mark done", pts: 10,
+      ctx: "Toured the Aster plan Saturday. Left a voicemail asking how lot premiums work on corner lots.", info: { Stage: "Touring", Community: "Willow Creek", Last: "2 days ago" } },
+    { id: 2, tab: "priority", title: "Missing: move-in timeline", sub: "Daniel Ortiz", kind: "choice", options: ["0–3 months", "3–6 months", "6+ months"], pts: 5,
+      ctx: "Timeline drives which inventory homes to show. One tap fills it in.", info: { Stage: "Lead", Community: "Harbor Point", Source: "Website" } },
+    { id: 3, tab: "priority", title: "Missing: phone number", sub: "The Okafor family", kind: "text", placeholder: "(555) 010-0000", pts: 5,
+      ctx: "Signed in at the model home but skipped the phone field.", info: { Stage: "Lead", Community: "Willow Creek", Visited: "Yesterday" } },
+    { id: 4, tab: "priority", title: "Follow up on contract", sub: "Priya & Sam Patel", kind: "done", label: "Sent · mark done", pts: 15,
+      ctx: "Waiting on their lender's pre-approval letter before contract signing.", info: { Stage: "Opportunity", Community: "Harbor Point", Due: "Today" } },
+    { id: 5, tab: "priority", title: "Missing: buyer financing", sub: "Jordan Lee", kind: "choice", options: ["Cash", "Builder's lender", "Outside lender"], pts: 5,
+      ctx: "Financing type changes the next steps and who to loop in.", info: { Stage: "Opportunity", Community: "Aster Ridge", Last: "Today" } },
+    { id: 6, tab: "later", title: "Update notes", sub: "Grace Kim", kind: "done", label: "Updated · mark done", pts: 2,
+      ctx: "Add notes from last week's walk-through.", info: { Stage: "Lead", Community: "Aster Ridge" } },
+    { id: 7, tab: "later", title: "Re-engage cold lead", sub: "Tom Alvarez", kind: "choice", options: ["Still interested", "Not now", "Bought elsewhere"], pts: 2,
+      ctx: "No contact in 45 days.", info: { Stage: "Lead", Community: "Willow Creek" } },
+  ];
+  const START_PTS = 40, GOAL = 150;
+  let items, tab, selected, pts;
+
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function reset() { items = seed(); tab = "priority"; pts = START_PTS; selected = firstOpen("priority"); render(); }
+  function open(t) { return items.filter((i) => i.tab === t && !i.done); }
+  function firstOpen(t) { return open(t)[0]?.id ?? null; }
+
+  function complete(id) {
+    const it = items.find((i) => i.id === id);
+    const before = pts;
+    it.done = true; pts += it.pts;
+    showBanner(before < GOAL / 2 && pts >= GOAL / 2
+      ? `+${it.pts} points · Halfway to this week's goal!`
+      : `+${it.pts} points`);
+    const list = items.filter((i) => i.tab === tab);
+    const idx = list.findIndex((i) => i.id === id);
+    const nxt = list.slice(idx + 1).find((i) => !i.done) || list.find((i) => !i.done);
+    selected = nxt ? nxt.id : null;
+    render();
+  }
+
+  let bannerTimer;
+  function showBanner(msg) {
+    const b = $("#banner");
+    b.textContent = msg;
+    b.classList.add("show");
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => b.classList.remove("show"), 1800);
+  }
+
+  function render() {
+    const pr = items.filter((i) => i.tab === "priority");
+    const pct = Math.round((pr.filter((i) => i.done).length / pr.length) * 100);
+    const hue = Math.round((pct / 100) * 130);
+    const ring = $("#ring");
+    ring.style.setProperty("--p", pct);
+    ring.style.setProperty("--c", `hsl(${hue} 60% 45%)`);
+    ring.dataset.label = pct + "%";
+    $("#pts").textContent = pts;
+    $("#ptsbar").style.width = Math.min(100, (pts / GOAL) * 100) + "%";
+    $("#cP").textContent = `(${open("priority").length})`;
+    $("#cL").textContent = `(${open("later").length})`;
+    document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === tab));
+
+    $("#items").innerHTML = items.filter((i) => i.tab === tab).map((i) => `
+      <li class="item ${i.tab === "later" ? "low" : ""} ${i.done ? "done" : ""}" role="option" tabindex="0"
+          data-id="${i.id}" aria-selected="${i.id === selected}">
+        <span class="dot"></span>
+        <span><div class="t">${esc(i.title)}</div><div class="s">${esc(i.sub)}</div></span>
+        <span class="k">+${i.pts}</span>
+      </li>`).join("");
+
+    const it = items.find((i) => i.id === selected);
+    const panel = $("#panel");
+    if (!it) {
+      panel.innerHTML = tab === "priority"
+        ? `<div class="empty"><b>Queue clear.</b>Nice work. Lower-priority items are waiting in “Later.”</div>`
+        : `<div class="empty"><b>All caught up.</b>Nothing left for later, either.</div>`;
+      return;
+    }
+    const info = Object.entries(it.info).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("");
+    let actions = "";
+    if (it.kind === "done") actions = `<button class="primary" data-act="done">${esc(it.label)}</button>`;
+    if (it.kind === "choice") actions = it.options.map((o) => `<button data-act="done">${esc(o)}</button>`).join("");
+    if (it.kind === "text") actions = `<input id="field" aria-label="${esc(it.title)}" placeholder="${esc(it.placeholder)}"><button class="primary" data-act="save">Save</button>`;
+    panel.innerHTML = `
+      <span class="eyebrow">${esc(it.sub)}</span>
+      <h4>${esc(it.title)}</h4>
+      <p class="ctx">${esc(it.ctx)}</p>
+      <dl>${info}</dl>
+      <div class="actions">${actions}</div>`;
+  }
+
+  document.getElementById("items").addEventListener("click", (e) => {
+    const li = e.target.closest(".item"); if (!li) return;
+    selected = Number(li.dataset.id); render();
+  });
+  document.getElementById("items").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const li = e.target.closest(".item"); if (!li) return;
+    e.preventDefault(); selected = Number(li.dataset.id); render();
+  });
+  document.getElementById("panel").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b || selected == null) return;
+    if (b.dataset.act === "save") {
+      const f = document.getElementById("field");
+      if (!f.value.trim()) { f.focus(); return; }
+    }
+    complete(selected);
+  });
+  document.getElementById("panel").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.id === "field" && e.target.value.trim()) complete(selected);
+  });
+  document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => {
+    tab = b.dataset.tab; selected = firstOpen(tab); render();
+  }));
+  document.getElementById("reset").addEventListener("click", reset);
+  reset();
+})();
+</script>
+</body>
+</html>
